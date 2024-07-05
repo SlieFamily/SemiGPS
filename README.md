@@ -1,5 +1,16 @@
 # A Semi Graph Learning Framework based on GraphGPS
 
-> ref: https://github.com/rampasek/GraphGPS
 
-![](pic\overview.png)
+
+![](pic/overview.png)
+
+
+
+> GPS Model: https://github.com/rampasek/GraphGPS
+
+## PE/SE Encoder
+
+LapSE+RWSE
+
+## GPS Layer
+
