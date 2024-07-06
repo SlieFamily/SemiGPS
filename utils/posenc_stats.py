@@ -7,10 +7,10 @@ from numpy.linalg import eigvals
 from torch_geometric.utils import (get_laplacian, to_scipy_sparse_matrix,
                                    to_undirected, to_dense_adj, scatter)
 from torch_geometric.utils.num_nodes import maybe_num_nodes
-from graphormer_encoder import graphormer_pre_processing
+from utils.graphormer_encoder import graphormer_pre_processing
 
 
-def compute_posenc_stats(data, pe_types, is_undirected, max_freqs=0, eigvec_norm='L2', **kargs):
+def compute_posenc_stats(data, pe_types, is_undirected, max_freqs=10, eigvec_norm='L2', **kargs):
     """Precompute positional encodings for the given graph.
 
     Supported PE statistics to precompute, selected by `pe_types`:

@@ -8,10 +8,10 @@ from torch_geometric.data import Batch
 from torch_geometric.nn import Linear as Linear_pyg
 from torch_geometric.utils import to_dense_batch
 
-from bigbird_layer import SingleBigBirdLayer
-from gatedgcn_layer import GatedGCNLayer
-from gine_conv_layer import GINEConvESLapPE
-from performer_layer import SelfAttention
+from models.bigbird_layer import SingleBigBirdLayer
+from models.gatedgcn_layer import GatedGCNLayer
+from models.gine_conv_layer import GINEConvESLapPE
+from models.performer_layer import SelfAttention
 
 
 class GPSLayer(nn.Module):

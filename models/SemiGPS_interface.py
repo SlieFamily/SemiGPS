@@ -7,7 +7,8 @@ from torch_geometric.graphgym.models.layer import BatchNorm1dNode
 
 from utils.laplace_pos_encoder import LapPENodeEncoder
 from utils.kernel_pos_encoder import RWSENodeEncoder
-from gps_layer import GPSLayer
+
+from models.gps_layer import GPSLayer
 
 EPS = 1e-15
 
@@ -97,7 +98,7 @@ class LitSemiGPS(pl.LightningModule):
     
     def __init__(self, dim_in, dim_out, node_enc_lst, edge_enc_lst, zone_lst, LapPE_cfg, RWSE_cfg, 
                  local_gnn_type, global_model_type, alpha,
-                 gt_dim, gt_heads, act, pna_degrees, gt_layers,
+                 gt_dim, gt_heads, act, gps_layers,
                  dropout, attn_dropout, layer_norm, batch_norm,  **kargs):
         super(LitSemiGPS, self).__init__()
 
@@ -109,14 +110,14 @@ class LitSemiGPS(pl.LightningModule):
         self.weight_node2head = torch.nn.Parameter(torch.Tensor(gt_dim, gt_dim))
 
         layers = []
-        for _ in range(gt_layers):
+        for _ in range(gps_layers):
             layers.append(GPSLayer(
                 dim_h=gt_dim,
                 local_gnn_type=local_gnn_type,
                 global_model_type=global_model_type,
                 num_heads=gt_heads,
                 act=act,
-                pna_degrees=pna_degrees,
+                # pna_degrees=pna_degrees,
                 # equivstable_pe=kargs['equivstable_pe'],
                 dropout=dropout,
                 attn_dropout=attn_dropout,
@@ -150,7 +151,7 @@ class LitSemiGPS(pl.LightningModule):
         new_batch.x = batch.x[torch.randperm(batch.x.size(0))]
         
         num_edges = batch.edge_index.size(1)
-        mask = torch.rand(num_edges) > self.p
+        mask = torch.rand(num_edges) > 0.3
         new_batch.edge_index = batch.edge_index[:,mask]
         new_batch.edge_weight = batch.edge_weight[mask]
         return new_batch

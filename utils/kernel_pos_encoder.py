@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from torch_geometric.graphgym.register import register_node_encoder
-
+from utils.posenc_stats import compute_posenc_stats
 
 class KernelPENodeEncoder(torch.nn.Module):
     """Configurable kernel-based Positional Encoding node encoder.
@@ -31,7 +31,7 @@ class KernelPENodeEncoder(torch.nn.Module):
     kernel_type = None  # Instantiated type of the KernelPE, e.g. RWSE
 
     def __init__(self, dim_in, dim_pe, dim_emb, model_type, n_layers, 
-                 norm_type, ksteps, pass_as_var=True, expand_x=True):
+                 norm_type, ksteps, pass_as_var=True, expand_x=True, **kargs):
         super().__init__()
         if self.kernel_type is None:
             raise ValueError(f"{self.__class__.__name__} has to be "
@@ -41,6 +41,7 @@ class KernelPENodeEncoder(torch.nn.Module):
         num_rw_steps = len(ksteps)
 
         self.pass_as_var = pass_as_var  
+        self.other_parameter = kargs
 
         if dim_emb - dim_pe < 0: # formerly 1, but you could have zero feature size
             raise ValueError(f"PE dim size {dim_pe} is too large for "
@@ -79,11 +80,13 @@ class KernelPENodeEncoder(torch.nn.Module):
     def forward(self, batch):
         pestat_var = f"pestat_{self.kernel_type}"
         if not hasattr(batch, pestat_var):
-            raise ValueError(f"Precomputed '{pestat_var}' variable is "
-                             f"required for {self.__class__.__name__}; set "
-                             f"config 'posenc_{self.kernel_type}.enable' to "
-                             f"True, and also set 'posenc.kernel.times' values")
-
+            # raise ValueError(f"Precomputed '{pestat_var}' variable is "
+            #                  f"required for {self.__class__.__name__}; set "
+            #                  f"config 'posenc_{self.kernel_type}.enable' to "
+            #                  f"True, and also set 'posenc.kernel.times' values")
+            batch = compute_posenc_stats(batch, pe_types=self.kernel_type, 
+                                         is_undirected=False, 
+                                         max_freqs=self.max_freqs, **self.other_parameter)
         pos_enc = getattr(batch, pestat_var)  # (Num nodes) x (Num kernel times)
         # pos_enc = batch.rw_landing  # (Num nodes) x (Num kernel times)
         if self.raw_norm:

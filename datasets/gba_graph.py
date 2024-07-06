@@ -1,14 +1,14 @@
 import torch
 from torch_geometric.data import Dataset
 from torch_geometric.data import Data
-
+import numpy as np
 import pandas as pd
 
 class GbaDataset(Dataset):
-    def __init__(self, root="dataset/", transform=None, pre_transform=None):
+    def __init__(self, root="datasets/", transform=None, pre_transform=None):
         super().__init__(root, transform, pre_transform)
 
-        self.node_feature = torch.load(root+"node_feature.pt").float()
+        self.node_feature = torch.load(root+"poi_feature.pt").float()
         self.move = pd.read_csv(root+"gba_move_cnt.csv", index_col=0)
         self.gdp = pd.read_csv(root+"gba_3gdp.csv", index_col=0)
 

@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch_geometric.graphgym.config import cfg
 from torch_geometric.graphgym.register import register_node_encoder
-
+from utils.posenc_stats import compute_posenc_stats
 
 @register_node_encoder('LapPE')
 class LapPENodeEncoder(torch.nn.Module):
@@ -30,19 +30,16 @@ class LapPENodeEncoder(torch.nn.Module):
     """
 
     def __init__(self, dim_in, dim_pe, dim_emb, model_type, n_layers, post_n_layers, 
-                 max_freqs, norm_type, pass_as_var=True, expand_x=True, **kargs):
+                 max_freqs, norm_type, pass_as_var=True, expand_x=True, att_heads=8, **kargs):
         super().__init__()
 
         if model_type not in ['Transformer', 'DeepSet']:
             raise ValueError(f"Unexpected PE model {model_type}")
         self.model_type = model_type
-
-        if 'att_heads' in kargs:
-            n_heads = kargs['att_heads']
-        else:
-            raise ValueError(f"Miss parameter of att_heads for model {model_type}")
-
+        self.max_freqs = max_freqs
         self.pass_as_var = pass_as_var
+
+        self.other_parameter = kargs
 
         if dim_emb - dim_pe < 0: # formerly 1, but you could have zero feature size
             raise ValueError(f"LapPE size {dim_pe} is too large for "
@@ -63,7 +60,7 @@ class LapPENodeEncoder(torch.nn.Module):
         if model_type == 'Transformer':
             # Transformer model for LapPE
             encoder_layer = nn.TransformerEncoderLayer(d_model=dim_pe,
-                                                       nhead=n_heads,
+                                                       nhead=att_heads,
                                                        batch_first=True)
             self.pe_encoder = nn.TransformerEncoder(encoder_layer,
                                                     num_layers=n_layers)
@@ -102,9 +99,13 @@ class LapPENodeEncoder(torch.nn.Module):
 
     def forward(self, batch):
         if not (hasattr(batch, 'EigVals') and hasattr(batch, 'EigVecs')):
-            raise ValueError("Precomputed eigen values and vectors are "
-                             f"required for {self.__class__.__name__}; "
-                             "set config 'posenc_LapPE.enable' to True")
+            # raise ValueError("Precomputed eigen values and vectors are "
+            #                  f"required for {self.__class__.__name__}; "
+            #                  "set config 'posenc_LapPE.enable' to True")
+            batch = compute_posenc_stats(batch, pe_types='LapPE', 
+                                         is_undirected=False, 
+                                         max_freqs=self.max_freqs, **self.other_parameter)
+            
         EigVals = batch.EigVals
         EigVecs = batch.EigVecs
 
