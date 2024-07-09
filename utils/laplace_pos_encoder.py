@@ -102,10 +102,9 @@ class LapPENodeEncoder(torch.nn.Module):
             # raise ValueError("Precomputed eigen values and vectors are "
             #                  f"required for {self.__class__.__name__}; "
             #                  "set config 'posenc_LapPE.enable' to True")
-            batch = compute_posenc_stats(batch, pe_types='LapPE', 
+            batch = compute_posenc_stats(batch, pe_types=['LapPE'], 
                                          is_undirected=False, 
-                                         max_freqs=self.max_freqs, **self.other_parameter)
-            
+                                         max_freqs=self.max_freqs, **self.other_parameter)  
         EigVals = batch.EigVals
         EigVecs = batch.EigVecs
 
@@ -121,6 +120,7 @@ class LapPENodeEncoder(torch.nn.Module):
         pos_enc[empty_mask] = 0  # (Num nodes) x (Num Eigenvectors) x 2
         if self.raw_norm:
             pos_enc = self.raw_norm(pos_enc)
+        
         pos_enc = self.linear_A(pos_enc)  # (Num nodes) x (Num Eigenvectors) x dim_pe
 
         # PE encoder: a Transformer or DeepSet model

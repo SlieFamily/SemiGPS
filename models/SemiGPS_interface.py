@@ -3,7 +3,9 @@ import torch
 import torch.nn.functional as F
 import torch.optim.lr_scheduler as lrs
 
-from torch_geometric.graphgym.models.layer import BatchNorm1dNode
+from torch_geometric.graphgym.config import cfg
+from torch_geometric.graphgym.models.layer import (new_layer_config,
+                                                   BatchNorm1dNode)
 
 from utils.laplace_pos_encoder import LapPENodeEncoder
 from utils.kernel_pos_encoder import RWSENodeEncoder
@@ -41,7 +43,7 @@ class FeatureEncoder(torch.nn.Module):
             # Encode integer node features via nn.Embeddings
             for encoder_name in node_enc_lst:
                 if encoder_name == 'LapPE':
-                    NodeEncoder = LapPENodeEncoder(self.dim_in, **LapPE_cfg)
+                    NodeEncoder = LapPENodeEncoder(self.dim_in, **LapPE_cfg).to(torch.device("cuda:0"))
                     # Update dim_in to reflect the new dimension of the node features
                     self.dim_in = LapPE_cfg['dim_emb'] 
                 elif encoder_name == 'RWSE':
@@ -53,7 +55,8 @@ class FeatureEncoder(torch.nn.Module):
             self.node_encoder = torch.nn.Sequential(*node_encoders)
 
             if node_encoder_bn:
-                self.node_encoder_bn = BatchNorm1dNode(self.dim_in)
+                self.node_encoder_bn =  BatchNorm1dNode(new_layer_config(self.dim_in, -1, -1, 
+                                                                has_act=False, has_bias=False, cfg=cfg))
 
         if edge_enc_lst:
             # Waiting for implementing, 
@@ -83,12 +86,12 @@ class Node2District(torch.nn.Module):
                     torch.nn.ReLU(),
                     torch.nn.Linear(2*dim_in, dim_out)
         )
-        self.zone_lst = torch.Tensor(zone_lst)
+        self.zone_lst = zone_lst
 
     def forward(self, x):
         head_emb = x.new_zeros((self.zone_lst.max()+1, x.size()[1])) # x.size([1]) is the count of nodes
         for index in range(self.zone_lst.max() + 1):
-            node_index_in_dis = (self.zone_lst == index).nonzero(as_tuple=True)[0]
+            node_index_in_dis = (self.zone_lst == index).nonzero()[0]
             head_emb[index] = torch.sum(x[node_index_in_dis], dim=0, keepdim=True)
         head_emb = self.mlp(head_emb)
         return head_emb
@@ -102,12 +105,13 @@ class LitSemiGPS(pl.LightningModule):
                  dropout, attn_dropout, layer_norm, batch_norm,  **kargs):
         super(LitSemiGPS, self).__init__()
 
-        assert gt_dim == self.encoder.dim_in, "FeatureEmbedding dimension must match GTs input dimension"
-
         self.alpha = alpha
-        self.encoder = FeatureEncoder(dim_in, node_enc_lst, edge_enc_lst, LapPE_cfg, RWSE_cfg)
+        self.zone_lst = zone_lst
+        self.encoder = FeatureEncoder(dim_in, node_enc_lst, edge_enc_lst, LapPE_cfg=LapPE_cfg, RWSE_cfg=RWSE_cfg)
         self.aggregator = Node2District(gt_dim, gt_dim, zone_lst)
         self.weight_node2head = torch.nn.Parameter(torch.Tensor(gt_dim, gt_dim))
+
+        assert gt_dim == self.encoder.dim_in, "(dim_emb != gt_dim) FeatureEmbedding dimension must match GTs input dimension"
 
         layers = []
         for _ in range(gps_layers):
@@ -163,7 +167,7 @@ class LitSemiGPS(pl.LightningModule):
             head = head_embs[head_id]
             value = torch.matmul(node, torch.matmul(self.weight_node2head, head))
             values.append(value)
-        values = torch.cat(values, dim=0)
+        values = torch.stack(values)
         return torch.sigmoid(values) if sigmoid else values
 
     def loss_function(self, x, cor_x, map, head, y):
@@ -181,7 +185,7 @@ class LitSemiGPS(pl.LightningModule):
         cor_batch = self.corruption(batch)
         
         x, map, head = self(batch)
-        cor_x, _ = self(cor_batch)
+        cor_x, _, _ = self(cor_batch)
 
         loss = self.loss_function(x, cor_x, map, head, batch.y)
         self.log('loss', loss, on_step=True, on_epoch=True, prog_bar=True, logger=True)

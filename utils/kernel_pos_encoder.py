@@ -84,9 +84,8 @@ class KernelPENodeEncoder(torch.nn.Module):
             #                  f"required for {self.__class__.__name__}; set "
             #                  f"config 'posenc_{self.kernel_type}.enable' to "
             #                  f"True, and also set 'posenc.kernel.times' values")
-            batch = compute_posenc_stats(batch, pe_types=self.kernel_type, 
-                                         is_undirected=False, 
-                                         max_freqs=self.max_freqs, **self.other_parameter)
+            batch = compute_posenc_stats(batch, pe_types=[self.kernel_type], 
+                                         is_undirected=False, **self.other_parameter)
         pos_enc = getattr(batch, pestat_var)  # (Num nodes) x (Num kernel times)
         # pos_enc = batch.rw_landing  # (Num nodes) x (Num kernel times)
         if self.raw_norm:

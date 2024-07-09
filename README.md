@@ -1,4 +1,4 @@
-# A Semi Graph Learning Framework based on GraphGPS
+# A Semi-supervised Graph Learning Framework based on GraphGPS
 
 
 

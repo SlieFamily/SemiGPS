@@ -43,6 +43,7 @@ class GatedGCNLayer(pyg_nn.conv.MessagePassing):
         self.e = None
 
     def forward(self, batch):
+
         x, e, edge_index = batch.x, batch.edge_attr, batch.edge_index
 
         """

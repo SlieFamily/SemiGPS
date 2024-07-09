@@ -73,10 +73,16 @@ def compute_posenc_stats(data, pe_types, is_undirected, max_freqs=10, eigvec_nor
         # NOTE: np.linalg.eigh() is used to compute eigen values and vectors for given matrix.
         evals, evects = np.linalg.eigh(L.toarray())
         
-        data.EigVals, data.EigVecs = get_lap_decomp_stats(
+        EigVals, EigVecs = get_lap_decomp_stats(
             evals=evals, evects=evects,
             max_freqs=max_freqs,
             eigvec_norm=eigvec_norm)
+        
+        # align divice
+        data.EigVals = EigVals.to(data.x.device)
+        data.EigVecs = EigVecs.to(data.x.device)
+
+
 
     if 'SignNet' in pe_types:
         # Eigen-decomposition with numpy for SignNet.
@@ -99,7 +105,7 @@ def compute_posenc_stats(data, pe_types, is_undirected, max_freqs=10, eigvec_nor
         rw_landing = get_rw_landing_probs(ksteps=rw_kernel_times,
                                           edge_index=data.edge_index,
                                           num_nodes=N)
-        data.pestat_RWSE = rw_landing
+        data.pestat_RWSE = rw_landing.to(data.x.device)
 
     # Heat Kernels.
     if 'HKdiagSE' in pe_types or 'HKfullPE' in pe_types:

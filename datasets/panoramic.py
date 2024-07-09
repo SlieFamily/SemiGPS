@@ -9,19 +9,28 @@ import torchvision.transforms as transforms
 
 
 class ViewDataset(Dataset):
-    def __init__(self, root='C:/Users/ASUS/gba_svi/', city='', district='', length=None, set_size=0):
+    def __init__(self, root='original/GBA_panoramic/', city='', district='', sub='', length=None, set_size=0):
         """
         Args:
-            root+city+district (string): Directory with all the images.
+            root+city+district+sub (string): Directory with all the images.
             length (int, optional): Optional num. of images.
             set_size (optional): Set size if need to resize images.
         """
 
         super(ViewDataset, self).__init__()
 
-        self.path = root+city+'/'+district+'/images'
+        self.path = root+city
+        if district:
+            self.path += '/'+district
+        if sub:
+            self.path += '/'+sub
+        self.path += '/images'
+
         self.size = set_size
-        self.file_list = [os.path.join(self.path, f) for f in os.listdir(self.path) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        try:
+            self.file_list = [os.path.join(self.path, f) for f in os.listdir(self.path) if f.endswith(('.jpg', '.jpeg', '.png'))]
+        except:
+            self.file_list = []
         
         if length:
             if length < len(self.file_list):
@@ -32,7 +41,6 @@ class ViewDataset(Dataset):
         return self.file_list.__len__()
     
     def __getitem__(self, index):
-        self.file_list
         self.image = Image.open(self.file_list[index])
         if self.size:
             self.image = self.image.resize((self.size, self.size), Image.LANCZOS)
